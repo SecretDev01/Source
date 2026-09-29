@@ -11357,64 +11357,78 @@ function Library:CreateWindow(WindowInfo)
 
 
 
--- THIS AREA IS THE ICON VGXMOD 
+-- THIS AREA IS THE ICON VGXMOD
+-- Replace the old block inside Library:CreateWindow (it needs WindowInfo, so it must stay in there)
 
 local ToggleButton = Library:AddDraggableButton("", function()
     Library:Toggle()
 end, true, true)
 
-ToggleButton.Button.Size = UDim2.fromOffset(44, 44)
-ToggleButton.Button.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-ToggleButton.Button.BackgroundTransparency = 0
-ToggleButton.Button.ClipsDescendants = true
+local Button = ToggleButton.Button
+Button.Size = UDim2.fromOffset(44, 44)
+Button.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Button.BackgroundTransparency = 0
+Button.ClipsDescendants = true
+Button.Text = ""
 
-local Corner = ToggleButton.Button:FindFirstChildOfClass("UICorner")
+--// Corner linked to the library (CornerRadius = 10 in CreateWindow -> 10 here) \\--
+local Corner = Button:FindFirstChildOfClass("UICorner")
 if not Corner then
-    Corner = Instance.new("UICorner")
-    Corner.Parent = ToggleButton.Button
+    Corner = New("UICorner", { Parent = Button })
 end
-Corner.CornerRadius = UDim.new(0, Library.CornerRadius / 2)
-table.insert(Library.Corners, Corner)
-
-for _, child in ipairs(ToggleButton.Button:GetChildren()) do
-    if child:IsA("TextLabel") or child:IsA("TextButton") then
-        child.Text = ""
-    end
+Corner.CornerRadius = UDim.new(0, Library.CornerRadius)
+if not table.find(Library.Corners, Corner) then
+    table.insert(Library.Corners, Corner) -- Window:SetCornerRadius updates everything in here
 end
 
-local ToggleIcon = Instance.new("ImageLabel")
-ToggleIcon.Name = "Icon"
-ToggleIcon.BackgroundTransparency = 1
-ToggleIcon.Image = "rbxassetid://107772605758737"
-ToggleIcon.ScaleType = Enum.ScaleType.Fit
-ToggleIcon.Size = UDim2.new(1, 0, 1, 0)
-ToggleIcon.AnchorPoint = Vector2.new(0.5, 0.5)
-ToggleIcon.Position = UDim2.new(0.5, 0, 0.5, 0)
-ToggleIcon.ZIndex = ToggleButton.Button.ZIndex + 1
-ToggleIcon.Parent = ToggleButton.Button
+--// Glow (same style as the main window, follows AccentColor + the corner above) \\--
+for GlowIndex = 1, 4 do
+    New("UIStroke", {
+        ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+        Color = "AccentColor",
+        Thickness = GlowIndex * 2,
+        Transparency = 0.6 + (GlowIndex * 0.08),
+        ZIndex = 0,
+        Parent = Button,
+    })
+end
 
-ToggleIcon.ImageColor3 = Library.Scheme.AccentColor
-Library.Registry[ToggleIcon] = { ImageColor3 = "AccentColor" }
+--// Icon \\--
+local ToggleIcon = New("ImageLabel", {
+    Name = "Icon",
+    BackgroundTransparency = 1,
+    Image = "rbxassetid://107772605758737",
+    ImageColor3 = "AccentColor",
+    ScaleType = Enum.ScaleType.Fit,
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    Position = UDim2.fromScale(0.5, 0.5),
+    Size = UDim2.fromScale(1, 1),
+    ZIndex = Button.ZIndex + 1,
+    Parent = Button,
+})
 
-local IconAspect = Instance.new("UIAspectRatioConstraint")
-IconAspect.AspectRatio = 1
-IconAspect.Parent = ToggleIcon
+New("UIAspectRatioConstraint", {
+    AspectRatio = 1,
+    Parent = ToggleIcon,
+})
 
-local IconCorner = Instance.new("UICorner")
-IconCorner.CornerRadius = UDim.new(0, Library.CornerRadius / 2)
-IconCorner.Parent = ToggleIcon
+local IconCorner = New("UICorner", {
+    CornerRadius = UDim.new(0, Library.CornerRadius),
+    Parent = ToggleIcon,
+})
 table.insert(Library.Corners, IconCorner)
 
+--// Position \\--
 if WindowInfo.MobileButtonsSide == "Right" then
-    ToggleButton.Button.AnchorPoint = Vector2.new(1, 0)
-    ToggleButton.Button.Position = UDim2.new(1, -6, 0, 6)
+    Button.AnchorPoint = Vector2.new(1, 0)
+    Button.Position = UDim2.new(1, -6, 0, 6)
 else
-    ToggleButton.Button.AnchorPoint = Vector2.new(0, 0)
-    ToggleButton.Button.Position = UDim2.fromOffset(6, 6)
+    Button.AnchorPoint = Vector2.new(0, 0)
+    Button.Position = UDim2.fromOffset(6, 6)
 end
 
 if WindowInfo.ShowMobileButtons == false then
-    ToggleButton.Button.Visible = false
+    Button.Visible = false
 end
 
 
