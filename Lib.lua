@@ -370,6 +370,9 @@ local Templates = {
         GlobalSearch = false,
 
         CornerRadius = 4,
+        GlowReach = 20,
+        GlowIntensity = 0.6,
+        GlowFalloff = 2,
         NotifySide = "Right",
         ShowCustomCursor = true,
 
@@ -1807,6 +1810,30 @@ function Library:AddOutline(Frame: GuiObject)
         Parent = Frame,
     })
     return OutlineStroke, ShadowStroke
+end
+
+function Library:AddGlow(Target: GuiObject, Reach: number, Intensity: number, Falloff: number)
+    Reach = math.max(1, math.floor(Reach or 20))
+    Intensity = math.clamp(Intensity or 0.6, 0, 0.99) -- must stay below 1
+    Falloff = Falloff or 2
+
+    local function Opacity(Distance)
+        return Intensity * (1 - Distance / Reach) ^ Falloff
+    end
+
+    local Strokes = {}
+    for Index = 1, Reach do
+        table.insert(Strokes, New("UIStroke", {
+            ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+            Color = "AccentColor", -- follows the theme
+            Thickness = Index,
+            Transparency = (1 - Opacity(Index - 1)) / (1 - Opacity(Index)),
+            ZIndex = 0,
+            Parent = Target,
+        }))
+    end
+
+    return Strokes
 end
 
 function Library:AddBlank(Frame: GuiObject, Size: UDim2)
@@ -8585,22 +8612,14 @@ function Library:CreateWindow(WindowInfo)
                 Parent = MainFrame,
             })
         )
-        Library:AddOutline(MainFrame)
+        local _, MainShadowStroke = Library:AddOutline(MainFrame)
+        MainShadowStroke:Destroy() -- dark ring would cut into the glow
         Library:MakeLine(MainFrame, {
             Position = UDim2.fromOffset(0, 48),
             Size = UDim2.new(1, 0, 0, 1),
         })
 
-        for GlowIndex = 1, 4 do
-            New("UIStroke", {
-                ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-                Color = "AccentColor",
-                Thickness = GlowIndex * 2,
-                Transparency = 0.6 + (GlowIndex * 0.08),
-                ZIndex = 0,
-                Parent = MainFrame,
-            })
-        end
+        Library:AddGlow(MainFrame, WindowInfo.GlowReach, WindowInfo.GlowIntensity, WindowInfo.GlowFalloff)
 
         DividerLine = New("Frame", {
             BackgroundColor3 = "OutlineColor",
@@ -11381,29 +11400,7 @@ if not table.find(Library.Corners, Corner) then
     table.insert(Library.Corners, Corner) -- Window:SetCornerRadius updates everything in here
 end
 
---// Realistic glow \\--
--- Stacked 1px strokes. Each stroke's transparency is calculated so the COMBINED
--- opacity follows a smooth curve: bright at the edge, fading softly outward.
--- Reach     = how far the glow spreads (px)
--- Intensity = brightness right at the edge (0-1)
--- Falloff   = 1 = linear, 2 = soft (default), 3 = very tight and soft
-local function AddGlow(Target, Reach, Intensity, Falloff)
-    local function Opacity(Distance)
-        return Intensity * (1 - Distance / Reach) ^ Falloff
-    end
-
-    for Index = 1, Reach do
-        New("UIStroke", {
-            ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-            Color = "AccentColor", -- follows the theme
-            Thickness = Index,
-            Transparency = (1 - Opacity(Index - 1)) / (1 - Opacity(Index)),
-            ZIndex = 0,
-            Parent = Target,
-        })
-    end
-end
-
+--// Glow (shared with main window) \\--
 -- remove the dark shadow ring from AddDraggableButton so it doesn't cut into the glow
 for _, Child in Button:GetChildren() do
     if Child:IsA("UIStroke") and Child.Thickness == 1.5 then
@@ -11411,7 +11408,7 @@ for _, Child in Button:GetChildren() do
     end
 end
 
-AddGlow(Button, 20, 0.6, 2)
+Library:AddGlow(Button, WindowInfo.GlowReach, WindowInfo.GlowIntensity, WindowInfo.GlowFalloff)
 
 --// Icon \\--
 local ToggleIcon = New("ImageLabel", {
