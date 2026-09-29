@@ -11418,7 +11418,7 @@ local ToggleIcon = New("ImageLabel", {
     Name = "Icon",
     BackgroundTransparency = 1,
     Image = "rbxassetid://126743026916351",
-    ImageColor3 = "AccentColor",
+    ImageColor3 = Color3.new(1, 1, 1),
     ScaleType = Enum.ScaleType.Fit,
     AnchorPoint = Vector2.new(0.5, 0.5),
     Position = UDim2.fromScale(0.5, 0.5),
@@ -11426,6 +11426,19 @@ local ToggleIcon = New("ImageLabel", {
     ZIndex = Button.ZIndex + 1,
     Parent = Button,
 })
+
+if WindowInfo.IconColor then
+    if Library.Scheme[WindowInfo.IconColor] then
+        ToggleIcon.ImageColor3 = Library.Scheme[WindowInfo.IconColor]
+        Library.Registry[ToggleIcon] = Library.Registry[ToggleIcon] or {}
+        Library.Registry[ToggleIcon].ImageColor3 = WindowInfo.IconColor
+    else
+        local Resolved = Library:ResolveColorText(WindowInfo.IconColor)
+        if Resolved then
+            ToggleIcon.ImageColor3 = Resolved
+        end
+    end
+end
 
 New("UIAspectRatioConstraint", {
     AspectRatio = 1,
