@@ -11381,17 +11381,37 @@ if not table.find(Library.Corners, Corner) then
     table.insert(Library.Corners, Corner) -- Window:SetCornerRadius updates everything in here
 end
 
---// Glow (same style as the main window, follows AccentColor + the corner above) \\--
-for GlowIndex = 1, 4 do
-    New("UIStroke", {
-        ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-        Color = "AccentColor",
-        Thickness = GlowIndex * 2,
-        Transparency = 0.6 + (GlowIndex * 0.08),
-        ZIndex = 0,
-        Parent = Button,
-    })
+--// Realistic glow \\--
+-- Stacked 1px strokes. Each stroke's transparency is calculated so the COMBINED
+-- opacity follows a smooth curve: bright at the edge, fading softly outward.
+-- Reach     = how far the glow spreads (px)
+-- Intensity = brightness right at the edge (0-1)
+-- Falloff   = 1 = linear, 2 = soft (default), 3 = very tight and soft
+local function AddGlow(Target, Reach, Intensity, Falloff)
+    local function Opacity(Distance)
+        return Intensity * (1 - Distance / Reach) ^ Falloff
+    end
+
+    for Index = 1, Reach do
+        New("UIStroke", {
+            ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+            Color = "AccentColor", -- follows the theme
+            Thickness = Index,
+            Transparency = (1 - Opacity(Index - 1)) / (1 - Opacity(Index)),
+            ZIndex = 0,
+            Parent = Target,
+        })
+    end
 end
+
+-- remove the dark shadow ring from AddDraggableButton so it doesn't cut into the glow
+for _, Child in Button:GetChildren() do
+    if Child:IsA("UIStroke") and Child.Thickness == 1.5 then
+        Child:Destroy()
+    end
+end
+
+AddGlow(Button, 20, 0.6, 2)
 
 --// Icon \\--
 local ToggleIcon = New("ImageLabel", {
@@ -11430,6 +11450,7 @@ end
 if WindowInfo.ShowMobileButtons == false then
     Button.Visible = false
 end
+
 
 
 
